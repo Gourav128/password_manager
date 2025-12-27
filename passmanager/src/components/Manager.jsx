@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import { useState } from 'react';
 import { useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import {v4 as uuidv4} from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 const Manager = () => {
 
@@ -13,11 +13,16 @@ const Manager = () => {
     const [form, setForm] = useState({ site: "", username: "", password: "" })
     const [passwordArray, setpasswordArray] = useState([])
 
+    const getPassword = async () => {
+        let req = await fetch("http://localhost:3000/")
+        let passwords = await req.json()
+        console.log(passwords)
+        setpasswordArray(passwords)
+    }
+
+
     useEffect(() => {
-        let passwords = localStorage.getItem("passwords");
-        if (passwords) {
-            setpasswordArray(JSON.parse(passwords))
-        }
+        getPassword()
     }, [])
 
     const showPassword = () => {
@@ -30,45 +35,56 @@ const Manager = () => {
         }
     }
 
-    const savePassword = () => {
-        if(form.site.lenght > 3 && form.username.length > 3 && form.password.length > 3 ){
-        toast('Password saved', {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: false,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "Dark",
-        });
-        setpasswordArray([...passwordArray, {...form, id: uuidv4()}])
-        localStorage.setItem("passwords", JSON.stringify([...passwordArray, {...form, id: uuidv4()}]))
-        console.log([...passwordArray, form])
-        setForm({ site: "", username: "", password: "" })
-    }else{
-        toast('Error:Passowrd not saved !');}
+    const savePassword = async () => {
+        if (form.site.length > 3 && form.username.length > 3 && form.password.length > 3) {
+            
+            await fetch("http://localhost:3000/",{method:"DELETE", headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({id:form.id})})
+
+            
+            setpasswordArray([...passwordArray, { ...form, id: uuidv4() }])
+           await fetch("http://localhost:3000/",{method:"POST", headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({...form, id:uuidv4()})})
+                // localStorage.setItem("passwords", JSON.stringify([...passwordArray, { ...form, id: uuidv4() }]))
+                // console.log([...passwordArray, form])
+                setForm({ site: "", username: "", password: "" })
+            } else {
+                toast('Error:Passowrd not saved !');
+            }
+            toast('Password saved', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: false,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "Dark",
+            });
+        }
+        const deletePassword = async(id) => {
+            const c = confirm("Do you really want to delete password")
+            if (c) {
+                setpasswordArray(passwordArray.filter(item => item.id !== id))
+            // localStorage.setItem("passwords", JSON.stringify(passwordArray.filter(item => item.id !== id)))
+          let res =await fetch("http://localhost:3000/",{method:"DELETE", headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({id})})
+            toast('Password Deleted ', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: false,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+            // console.log([...passwordArray, form])
+        }
     }
-    const deletePassword = (id) => {
-        const c = confirm("Do you really want to delete password")
-        if(c){
-        setpasswordArray(passwordArray.filter(item=>item.id!==id))
-        localStorage.setItem("passwords", JSON.stringify(passwordArray.filter(item=>item.id!==id)))
-        toast('Password Deleted ', {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: false,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-        });
-        // console.log([...passwordArray, form])
-    }}
     const editPassword = (id) => {
-        setForm(passwordArray.filter(i=>i.id===id)[0])
-        setpasswordArray(passwordArray.filter(item=>item.id!==id))
+        setForm({...passwordArray.filter(i => i.id === id)[0], id:id})
+        setpasswordArray(passwordArray.filter(item => item.id !== id))
         // localStorage.setItem("passwords", JSON.stringify([...passwordArray, form]))
         // console.log([...passwordArray, form])
     }
@@ -106,7 +122,7 @@ const Manager = () => {
                 pauseOnHover
                 theme="light"
             />
-            <div className="absolute top-0 -z-10 h-full w-full bg-white"><div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-50 blur-[80px]"></div></div>            
+            <div className="absolute top-0 -z-10 h-full w-full bg-white"><div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-50 blur-[80px]"></div></div>
             <div className=" p-2 md:p-0 md:mycontainer">
                 <h1 className="text-4xl text font-bold text-center">
                     <span className='text-green-700'>&lt;</span>
@@ -116,12 +132,12 @@ const Manager = () => {
                 <p className='text-green-900 text-lg text-center'>Your own password manager</p>
                 <div className="text-black flex flex-col p-4 text-black gap-8 items-center">
 
-                    <input name='site' value={form.site} onChange={handleChange} placeholder='Enter Website URL' type="text" className='rounded-full border border-green-400 w-full p-4 py-1' id='site'/>
+                    <input name='site' value={form.site} onChange={handleChange} placeholder='Enter Website URL' type="text" className='rounded-full border border-green-400 w-full p-4 py-1' id='site' />
 
                     <div className="flex flex-col md:flex-row w-full gap-8 justify-between">
-                        <input name='username' value={form.username} onChange={handleChange} placeholder='Enter Username' type="text" className='rounded-full border border-green-400 w-full p-4 py-1' id='username'/>
+                        <input name='username' value={form.username} onChange={handleChange} placeholder='Enter Username' type="text" className='rounded-full border border-green-400 w-full p-4 py-1' id='username' />
                         <div className="relative">
-                            <input name='password' value={form.password} onChange={handleChange} ref={passwordRef} placeholder='Enter Password' type="password" className='rounded-full border border-green-400 w-full p-4 py-1' id='password'/>
+                            <input name='password' value={form.password} onChange={handleChange} ref={passwordRef} placeholder='Enter Password' type="password" className='rounded-full border border-green-400 w-full p-4 py-1' id='password' />
                             <span className='absolute right-[3px] top-[4px] cursor-pointer' onClick={showPassword}>
                                 <img ref={ref} className='p-1' width={26} src="icons/eyeclosed.jpg" alt="eye emoji" />
                             </span>
@@ -163,19 +179,19 @@ const Manager = () => {
                                             trigger="hover"
                                         ></lord-icon></div>
                                     </div></td>
-                                    <td className=' justify-center py-2 border border-white text-center '><div className="flex items-center justify-center"><span>{item.password}</span> <div className='lordiconcopy size-7 cursor-pointer' onClick={() => { copyText(item.password) }}>
+                                    <td className=' justify-center py-2 border border-white text-center '><div className="flex items-center justify-center"><span>{"*".repeat(item.password.length)}</span> <div className='lordiconcopy size-7 cursor-pointer' onClick={() => { copyText(item.password) }}>
                                         <lord-icon style={{ "width": "25px", "height": "25px", "paddingTop": "3px", "paddinLeft": "3px" }}
                                             src="https://cdn.lordicon.com/rrbmabsx.json"
                                             trigger="hover"
                                         ></lord-icon></div>
                                     </div></td>
                                     <td className=' justify-center py-2 border border-white text-center '>
-                                        <span className='cursor-pointer mx-1' onClick={()=>{editPassword(item.id)}}><lord-icon
+                                        <span className='cursor-pointer mx-1' onClick={() => { editPassword(item.id) }}><lord-icon
                                             src="https://cdn.lordicon.com/exymduqj.json"
                                             trigger="hover"
                                             style={{ "width": "25px", "height": "25px" }}>
                                         </lord-icon></span>
-                                        <span className='cursor-pointer mx-1' onClick={()=>{deletePassword(item.id)}}><lord-icon
+                                        <span className='cursor-pointer mx-1' onClick={() => { deletePassword(item.id) }}><lord-icon
                                             src="https://cdn.lordicon.com/jzinekkv.json"
                                             trigger="hover"
                                             style={{ "width": "25px", "height": "25px" }}>
